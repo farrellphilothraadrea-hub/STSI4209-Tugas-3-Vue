@@ -1,0 +1,181 @@
+<!-- Stock Table Template -->
+<script type="text/x-template" id="tpl-stock-table">
+    <div class="stock-table-container">
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h3>🔍 Filter & Sort</h3>
+            
+            <!-- Filter UT-Daerah -->
+            <div class="filter-group">
+                <label for="filter-upbjj">UT-Daerah:</label>
+                <select id="filter-upbjj" v-model="filters.upbjj" @change="applyFilters">
+                    <option value="">-- Semua Daerah --</option>
+                    <option v-for="upbjj in upbjjList" :key="upbjj" :value="upbjj">
+                        {{ upbjj }}
+                    </option>
+                </select>
+            </div>
+
+            <!-- Filter Kategori (Dependent) -->
+            <div class="filter-group" v-if="filters.upbjj">
+                <label for="filter-kategori">Kategori Mata Kuliah:</label>
+                <select id="filter-kategori" v-model="filters.kategori" @change="applyFilters">
+                    <option value="">-- Semua Kategori --</option>
+                    <option v-for="kat in availableKategori" :key="kat" :value="kat">
+                        {{ kat }}
+                    </option>
+                </select>
+            </div>
+
+            <!-- Filter Re-order Alert -->
+            <div class="filter-group checkbox">
+                <input type="checkbox" id="filter-reorder" v-model="filters.reorderOnly" @change="applyFilters">
+                <label for="filter-reorder">Tampilkan hanya yang perlu re-order (qty ≤ safety)</label>
+            </div>
+
+            <!-- Sort -->
+            <div class="filter-group">
+                <label for="sort-by">Sort berdasarkan:</label>
+                <select id="sort-by" v-model="filters.sortBy" @change="applyFilters">
+                    <option value="">-- Tidak ada sorting --</option>
+                    <option value="judul">Judul (A-Z)</option>
+                    <option value="qty">Stok (Terendah)</option>
+                    <option value="harga">Harga (Terendah)</option>
+                </select>
+            </div>
+
+            <!-- Reset Button -->
+            <button @click="resetFilters" class="btn btn-secondary">🔄 Reset Filter</button>
+        </div>
+
+        <!-- Add New Item Form -->
+        <div class="form-section">
+            <h3>➕ Tambah Bahan Ajar Baru</h3>
+            <div class="form-row">
+                <input v-model="newItem.kode" placeholder="Kode (e.g. EKMA4116)" @keyup.enter="addItem">
+                <input v-model="newItem.judul" placeholder="Judul" @keyup.enter="addItem">
+                <select v-model="newItem.kategori" @keyup.enter="addItem">
+                    <option value="">-- Kategori --</option>
+                    <option v-for="kat in kategoriList" :key="kat" :value="kat">{{ kat }}</option>
+                </select>
+                <select v-model="newItem.upbjj" @keyup.enter="addItem">
+                    <option value="">-- UT-Daerah --</option>
+                    <option v-for="upbjj in upbjjList" :key="upbjj" :value="upbjj">{{ upbjj }}</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <input v-model="newItem.lokasiRak" placeholder="Lokasi Rak" @keyup.enter="addItem">
+                <input v-model.number="newItem.harga" type="number" placeholder="Harga" @keyup.enter="addItem">
+                <input v-model.number="newItem.qty" type="number" placeholder="Qty" @keyup.enter="addItem">
+                <input v-model.number="newItem.safety" type="number" placeholder="Safety Stock" @keyup.enter="addItem">
+            </div>
+            <div class="form-row">
+                <input v-model="newItem.catatanHTML" placeholder="Catatan (HTML allowed)" style="width: 100%;" @keyup.enter="addItem">
+            </div>
+            <div class="form-buttons">
+                <button @click="addItem" class="btn btn-success">💾 Tambah</button>
+                <small style="color: #666;">💡 Tekan Enter untuk cepat menambah</small>
+            </div>
+            <div v-if="formErrors" class="error-message">
+                <strong>❌ Error:</strong> {{ formErrors }}
+            </div>
+        </div>
+
+        <!-- Stock Table -->
+        <table class="stock-table">
+            <thead>
+                <tr>
+                    <th>Kode</th>
+                    <th>Nama Mata Kuliah</th>
+                    <th>Kategori</th>
+                    <th>UT-Daerah</th>
+                    <th>Lokasi Rak</th>
+                    <th>Harga</th>
+                    <th>Stok</th>
+                    <th>Safety</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in filteredData" :key="item.kode" class="table-row">
+                    <!-- Kode -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ item.kode }}</span>
+                        <input v-else v-model="editingItem.kode" style="width: 100%;">
+                    </td>
+                    
+                    <!-- Judul -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ item.judul }}</span>
+                        <input v-else v-model="editingItem.judul" style="width: 100%;">
+                    </td>
+                    
+                    <!-- Kategori -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ item.kategori }}</span>
+                        <select v-else v-model="editingItem.kategori" style="width: 100%;">
+                            <option v-for="kat in kategoriList" :key="kat" :value="kat">{{ kat }}</option>
+                        </select>
+                    </td>
+                    
+                    <!-- UT-Daerah -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ item.upbjj }}</span>
+                        <select v-else v-model="editingItem.upbjj" style="width: 100%;">
+                            <option v-for="upbjj in upbjjList" :key="upbjj" :value="upbjj">{{ upbjj }}</option>
+                        </select>
+                    </td>
+                    
+                    <!-- Lokasi Rak -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ item.lokasiRak }}</span>
+                        <input v-else v-model="editingItem.lokasiRak" style="width: 100%;">
+                    </td>
+                    
+                    <!-- Harga (Formatted) -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ formatCurrency(item.harga) }}</span>
+                        <input v-else v-model.number="editingItem.harga" type="number" style="width: 100%;">
+                    </td>
+                    
+                    <!-- Qty (Formatted) -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ item.qty }} buah</span>
+                        <input v-else v-model.number="editingItem.qty" type="number" style="width: 100%;">
+                    </td>
+                    
+                    <!-- Safety (Formatted) -->
+                    <td>
+                        <span v-if="editingId !== item.kode">{{ item.safety }} buah</span>
+                        <input v-else v-model.number="editingItem.safety" type="number" style="width: 100%;">
+                    </td>
+                    
+                    <!-- Status Badge -->
+                    <td>
+                        <status-badge :qty="item.qty" :safety="item.safety" :catatan="item.catatanHTML"></status-badge>
+                    </td>
+                    
+                    <!-- Actions -->
+                    <td class="action-buttons">
+                        <button v-if="editingId !== item.kode" @click="startEdit(item)" class="btn btn-sm btn-primary" title="Edit">✏️</button>
+                        <button v-if="editingId !== item.kode" @click="confirmDelete(item)" class="btn btn-sm btn-danger" title="Hapus">🗑️</button>
+                        
+                        <button v-else @click="saveEdit" class="btn btn-sm btn-success" title="Simpan" @keyup.enter="saveEdit">💾</button>
+                        <button v-else @click="cancelEdit" class="btn btn-sm btn-secondary" title="Batal">✕</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Empty State -->
+        <div v-if="filteredData.length === 0" class="empty-state">
+            <p>📭 Tidak ada data bahan ajar</p>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary">
+            <p><strong>Total Items:</strong> {{ filteredData.length }} | <strong>Total Harga:</strong> {{ formatCurrency(totalHarga) }}</p>
+        </div>
+    </div>
+</script>

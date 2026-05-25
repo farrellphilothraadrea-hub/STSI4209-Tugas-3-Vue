@@ -3,43 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Pemesanan Bahan Ajar - Universitas Terbuka</title>
+    <title>SITTA - Sistem Pemesanan Bahan Ajar Universitas Terbuka</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <div id="app">
-        <!-- Navigation Tabs -->
-        <nav class="navbar">
-            <div class="container">
-                <h1 class="logo">SITTA - Universitas Terbuka</h1>
-                <ul class="nav-tabs">
-                    <li><a href="#" @click.prevent="currentTab = 'stok'" :class="{ active: currentTab === 'stok' }">📦 Stok Bahan Ajar</a></li>
-                    <li><a href="#" @click.prevent="currentTab = 'tracking'" :class="{ active: currentTab === 'tracking' }">🚚 Tracking DO</a></li>
-                </ul>
+        <!-- Navbar -->
+        <div class="navbar">
+            <h1>📚 SITTA - Pemesanan Bahan Ajar UT</h1>
+            <div class="nav-tabs">
+                <div 
+                    class="nav-tab" 
+                    :class="{ active: currentTab === 'stok' }" 
+                    @click="currentTab = 'stok'"
+                >
+                    📦 Stok Bahan Ajar
+                </div>
+                <div 
+                    class="nav-tab" 
+                    :class="{ active: currentTab === 'tracking' }" 
+                    @click="currentTab = 'tracking'"
+                >
+                    🚚 Tracking DO
+                </div>
             </div>
-        </nav>
+        </div>
 
-        <!-- Main Content -->
-        <main class="container main-content">
-            <!-- Halaman Stok Bahan Ajar -->
+        <!-- Content Container -->
+        <div class="container">
+            <!-- Tab: Stok Bahan Ajar -->
             <ba-stock-table v-if="currentTab === 'stok'"></ba-stock-table>
-
-            <!-- Halaman Tracking Delivery Order -->
+            
+            <!-- Tab: Tracking Delivery Order -->
             <do-tracking v-if="currentTab === 'tracking'"></do-tracking>
-        </main>
-
-        <!-- Modal Component -->
-        <app-modal 
-            v-if="modalVisible" 
-            :title="modalTitle" 
-            :content="modalContent"
-            :type="modalType"
-            @close="closeModal"
-            @confirm="handleModalConfirm">
-        </app-modal>
+        </div>
     </div>
 
-    <!-- Vue.js Library -->
+    <!-- Modal untuk konfirmasi -->
+    <app-modal 
+        v-if="modalVisible"
+        :title="modalTitle"
+        :content="modalContent"
+        :type="modalType"
+        @close="closeModal"
+        @confirm="handleModalConfirm"
+    ></app-modal>
+
+    <!-- Vue.js -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
 
     <!-- Services -->
@@ -47,10 +57,17 @@
 
     <!-- Components -->
     <script src="js/components/status-badge.js"></script>
+    <script src="js/components/app-modal.js"></script>
     <script src="js/components/stock-table.js"></script>
     <script src="js/components/do-tracking.js"></script>
     <script src="js/components/order-form.js"></script>
-    <script src="js/components/app-modal.js"></script>
+
+    <!-- Templates -->
+    <script src="js/templates/status-badge.html"></script>
+    <script src="js/templates/app-modal.html"></script>
+    <script src="js/templates/stock-table.html"></script>
+    <script src="js/templates/do-tracking.html"></script>
+    <script src="js/templates/order-form.html"></script>
 
     <!-- Root App -->
     <script src="js/app.js"></script>

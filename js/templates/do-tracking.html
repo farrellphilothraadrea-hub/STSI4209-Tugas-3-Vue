@@ -1,0 +1,209 @@
+<!-- Delivery Order Tracking Template -->
+<script type="text/x-template" id="tpl-do-tracking">
+    <div class="do-tracking-container">
+        <!-- Search Section -->
+        <div class="search-section">
+            <h3>🔍 Cari Delivery Order</h3>
+            <div class="search-group">
+                <input 
+                    v-model="searchQuery" 
+                    placeholder="Cari berdasarkan Nomor DO atau NIM..." 
+                    @keyup.enter="searchDO"
+                    @keyup.esc="clearSearch"
+                >
+                <button @click="searchDO" class="btn btn-primary">🔍 Cari</button>
+                <button @click="clearSearch" class="btn btn-secondary">🗑️ Clear</button>
+            </div>
+            <small style="color: #666;">💡 Tekan Enter untuk cari, Esc untuk clear</small>
+        </div>
+
+        <!-- Search Results -->
+        <div v-if="searchResults.length > 0" class="search-results">
+            <h4>📦 Hasil Pencarian ({{ searchResults.length }} ditemukan)</h4>
+            <div class="do-list">
+                <div v-for="(do, index) in searchResults" :key="index" class="do-card">
+                    <div class="do-header" @click="do.expanded = !do.expanded" style="cursor: pointer;">
+                        <div class="do-info">
+                            <strong>{{ do.nomorDO }}</strong>
+                            <span class="nim">NIM: {{ do.nim }}</span>
+                            <span class="nama">Nama: {{ do.nama }}</span>
+                        </div>
+                        <div class="do-status">
+                            <span :class="['status-badge', do.status === 'Sampai Tujuan' ? 'success' : 'info']">{{ do.status }}</span>
+                            <span class="toggle">{{ do.expanded ? '▼' : '▶' }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Detail DO (Expanded) -->
+                    <div v-show="do.expanded" class="do-detail">
+                        <div class="detail-row">
+                            <span class="label">Ekspedisi:</span>
+                            <span>{{ do.ekspedisi }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Paket:</span>
+                            <span>{{ do.paketNama }} ({{ do.paket }})</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Tanggal Kirim:</span>
+                            <span>{{ formatTanggalIndonesia(do.tanggalKirim) }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Total Harga:</span>
+                            <span>{{ formatCurrency(do.total) }}</span>
+                        </div>
+                        
+                        <!-- Timeline Perjalanan -->
+                        <div class="timeline-section">
+                            <h5>📍 Timeline Perjalanan</h5>
+                            <div class="timeline">
+                                <div v-for="(journey, jIdx) in do.perjalanan" :key="jIdx" class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <strong>{{ journey.waktu }}</strong>
+                                        <p>{{ journey.keterangan }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Add Progress -->
+                            <div class="add-progress">
+                                <input v-model="newProgress.keterangan" placeholder="Tambah progress perjalanan..." @keyup.enter="addProgress(index)">
+                                <button @click="addProgress(index)" class="btn btn-sm btn-success">+ Tambah</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div v-else-if="hasSearched" class="no-results">
+            <p>❌ Tidak ada delivery order yang cocok dengan pencarian Anda</p>
+        </div>
+
+        <!-- Add New Delivery Order Section -->
+        <div class="add-do-section">
+            <h3>➕ Input Delivery Order Baru</h3>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nomor DO (Auto-Generated):</label>
+                    <input v-model="newDO.nomorDO" disabled style="background: #f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <label>NIM:</label>
+                    <input v-model="newDO.nim" placeholder="Nomor Induk Mahasiswa" @keyup.enter="addDeliveryOrder">
+                </div>
+                <div class="form-group">
+                    <label>Nama:</label>
+                    <input v-model="newDO.nama" placeholder="Nama Mahasiswa" @keyup.enter="addDeliveryOrder">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ekspedisi:</label>
+                    <select v-model="newDO.ekspedisi" @change="applyPaketList">
+                        <option value="">-- Pilih Ekspedisi --</option>
+                        <option v-for="exp in pengirimanList" :key="exp.kode" :value="exp.kode">{{ exp.nama }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Paket Bahan Ajar:</label>
+                    <select v-model="newDO.paket" @change="updatePaketDetail">
+                        <option value="">-- Pilih Paket --</option>
+                        <option v-for="paket in paketList" :key="paket.kode" :value="paket.kode">
+                            {{ paket.kode }} - {{ paket.nama }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Paket Detail Display -->
+            <div v-if="selectedPaketDetail" class="paket-detail">
+                <h5>📦 Detail Paket:</h5>
+                <p><strong>{{ selectedPaketDetail.nama }}</strong></p>
+                <p><strong>Isi Paket:</strong> {{ selectedPaketDetail.isi.join(', ') }}</p>
+                <p><strong>Harga:</strong> {{ formatCurrency(selectedPaketDetail.harga) }}</p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tanggal Kirim:</label>
+                    <input v-model="newDO.tanggalKirim" type="date" @keyup.enter="addDeliveryOrder">
+                </div>
+                <div class="form-group">
+                    <label>Total Harga:</label>
+                    <input v-model="newDO.total" type="number" disabled style="background: #f0f0f0;">
+                </div>
+            </div>
+
+            <div class="form-buttons">
+                <button @click="addDeliveryOrder" class="btn btn-success">💾 Simpan Delivery Order</button>
+                <button @click="resetDOForm" class="btn btn-secondary">🔄 Reset Form</button>
+            </div>
+            <div v-if="doFormErrors" class="error-message">
+                <strong>❌ Error:</strong> {{ doFormErrors }}
+            </div>
+        </div>
+
+        <!-- List All Delivery Orders -->
+        <div class="all-do-section">
+            <h3>📋 Semua Delivery Order</h3>
+            <div v-if="allDeliveryOrders.length > 0" class="do-list">
+                <div v-for="(do, index) in allDeliveryOrders" :key="index" class="do-card">
+                    <div class="do-header" @click="do.expanded = !do.expanded" style="cursor: pointer;">
+                        <div class="do-info">
+                            <strong>{{ do.nomorDO }}</strong>
+                            <span class="nim">NIM: {{ do.nim }}</span>
+                            <span class="nama">Nama: {{ do.nama }}</span>
+                        </div>
+                        <div class="do-status">
+                            <span :class="['status-badge', do.status === 'Sampai Tujuan' ? 'success' : 'info']">{{ do.status }}</span>
+                            <span class="toggle">{{ do.expanded ? '▼' : '▶' }}</span>
+                        </div>
+                    </div>
+                    
+                    <div v-show="do.expanded" class="do-detail">
+                        <div class="detail-row">
+                            <span class="label">Ekspedisi:</span>
+                            <span>{{ do.ekspedisi }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Paket:</span>
+                            <span>{{ do.paketNama }} ({{ do.paket }})</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Tanggal Kirim:</span>
+                            <span>{{ formatTanggalIndonesia(do.tanggalKirim) }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Total Harga:</span>
+                            <span>{{ formatCurrency(do.total) }}</span>
+                        </div>
+                        
+                        <div class="timeline-section">
+                            <h5>📍 Timeline Perjalanan</h5>
+                            <div class="timeline">
+                                <div v-for="(journey, jIdx) in do.perjalanan" :key="jIdx" class="timeline-item">
+                                    <div class="timeline-dot"></div>
+                                    <div class="timeline-content">
+                                        <strong>{{ journey.waktu }}</strong>
+                                        <p>{{ journey.keterangan }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="add-progress">
+                                <input v-model="newProgress.keterangan" placeholder="Tambah progress perjalanan..." @keyup.enter="addProgress(index)">
+                                <button @click="addProgress(index)" class="btn btn-sm btn-success">+ Tambah</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else class="empty-state">
+                <p>📭 Belum ada delivery order</p>
+            </div>
+        </div>
+    </div>
+</script>
