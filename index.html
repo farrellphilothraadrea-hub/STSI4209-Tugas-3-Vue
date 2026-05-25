@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pemesanan Bahan Ajar - Universitas Terbuka</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation Tabs -->
+        <nav class="navbar">
+            <div class="container">
+                <h1 class="logo">SITTA - Universitas Terbuka</h1>
+                <ul class="nav-tabs">
+                    <li><a href="#" @click.prevent="currentTab = 'stok'" :class="{ active: currentTab === 'stok' }">📦 Stok Bahan Ajar</a></li>
+                    <li><a href="#" @click.prevent="currentTab = 'tracking'" :class="{ active: currentTab === 'tracking' }">🚚 Tracking DO</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="container main-content">
+            <!-- Halaman Stok Bahan Ajar -->
+            <ba-stock-table v-if="currentTab === 'stok'"></ba-stock-table>
+
+            <!-- Halaman Tracking Delivery Order -->
+            <do-tracking v-if="currentTab === 'tracking'"></do-tracking>
+        </main>
+
+        <!-- Modal Component -->
+        <app-modal 
+            v-if="modalVisible" 
+            :title="modalTitle" 
+            :content="modalContent"
+            :type="modalType"
+            @close="closeModal"
+            @confirm="handleModalConfirm">
+        </app-modal>
+    </div>
+
+    <!-- Vue.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.14/dist/vue.js"></script>
+
+    <!-- Services -->
+    <script src="js/services/api.js"></script>
+
+    <!-- Components -->
+    <script src="js/components/status-badge.js"></script>
+    <script src="js/components/stock-table.js"></script>
+    <script src="js/components/do-tracking.js"></script>
+    <script src="js/components/order-form.js"></script>
+    <script src="js/components/app-modal.js"></script>
+
+    <!-- Root App -->
+    <script src="js/app.js"></script>
+</body>
+</html>
