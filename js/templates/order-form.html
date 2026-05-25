@@ -1,0 +1,14 @@
+<!-- Order Form Template -->
+<script type="text/x-template" id="tpl-order-form">
+    <form @submit.prevent="handleSubmit">
+        <slot></slot>
+        <div class="filter-buttons">
+            <button type="submit" class="btn btn-success">
+                💾 Simpan
+            </button>
+            <button type="button" class="btn btn-secondary" @click="handleCancel">
+                ✕ Batal
+            </button>
+        </div>
+    </form>
+</script>
